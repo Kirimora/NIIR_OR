@@ -1,39 +1,65 @@
 import os
+import sys
 
-def process_file(input_filename, output_names):
-    # Это нужно, чтобы программа автоматически работала из правильной папки
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    full_path = os.path.join(script_dir, input_filename)
+def split_to_files(filename, headers):
+    # Проверяем, существует ли файл
+    if not os.path.exists(filename):
+        print(f"Ошибка: Файл '{filename}' не найден в папке со скриптом.")
+        return
 
-    vectors = {name: [] for name in output_names}
+    print(f"Обработка: {filename}...")
+    
+    try:
+        # Создаём файлы для записи (используем 'w' для перезаписи)
+        output_files = []
+        for h in headers:
+            f = open(f"{h}.txt", "w", encoding="utf-8")
+            # Пишем начало списка
+            f.write(f"{h} = [\n")
+            output_files.append(f)
 
-    # Чтение данных (используем полный путь full_path)
-    with open(full_path, 'r', encoding='utf-8') as file:
-        for line in file:
-            line = line.strip()
-            if not line:
-                continue
+        # Читаем data1.txt или data2.txt построчно
+        with open(filename, "r", encoding="utf-8") as infile:
+            for line_num, line in enumerate(infile):
+                line = line.strip()
+                if not line:
+                    continue
                 
-            parts = line.split()
-            if len(parts) == 4:
-                values = [float(p.replace(',', '.')) for p in parts]
-                for i, name in enumerate(output_names):
-                    vectors[name].append(values[i])
+                # Разбиваем строку на столбцы
+                parts = line.split()
+                
+                # Если количество столбцов не 4, пропускаем (для защиты от пустых строк в конце)
+                if len(parts) != len(headers):
+                    continue
+
+                # Записываем значения в соответствующие файлы
+                for i, part in enumerate(parts):
+                    # Заменяем ',' на '.' (европейский формат) и сразу записываем
+                    cleaned_value = part.replace(',', '.')
+                    output_files[i].write(f"{cleaned_value},\n")
+
+        # Закрываем файлы, дописывая закрывающую скобку
+        for f in output_files:
+            f.write("]\n")
+            f.close()
+            
+        print(f"Готово! Созданы файлы: {headers}")
+
+    except Exception as e:
+        print(f"Ошибка во время обработки {filename}: {e}")
+
+# === ГЛАВНАЯ ЧАСТЬ СКРИПТА ===
+if __name__ == "__main__":
+    # 1. Меняем рабочую папку на папку, где лежит этот скрипт
+    # Это решит проблему с "Файл не найден"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
+
+    print(f"Текущая рабочая папка: {os.getcwd()}\n")
+
+    # 2. Обрабатываем файлы
+    split_to_files("data1.txt", ["A", "B", "C", "D"])
+    print("-" * 30)
+    split_to_files("data2.txt", ["E", "F", "G", "H"])
     
-    # Сохранение в файлы (сохраняем тоже в папку со скриптом)
-    for name, data in vectors.items():
-        out_path = os.path.join(script_dir, f"{name}.txt")
-        with open(out_path, "w", encoding='utf-8') as f:
-            f.write(f"{name} = {data}")
-    
-    print(f"Файл '{input_filename}' обработан. Созданы файлы: {', '.join([f'{n}.txt' for n in output_names])}")
-
-# ==========================================
-# ЗАПУСК
-# ==========================================
-
-# Убедитесь, что файлы data.txt и data2.txt лежат в папке со скриптом
-process_file('data.txt', ['A', 'B', 'C', 'D'])
-process_file('data2.txt', ['E', 'F', 'G', 'H'])
-
-print("ВСЕ ФАЙЛЫ УСПЕШНО СОЗДАНЫ!")
+    print("\nВсе операции завершены!")
