@@ -1,0 +1,81 @@
+%% VecLoader.m
+% Reads A/B/C/D and E/F/G/H vectors from .txt files and plots comparisons
+
+% -------------------------------------------------------------------------
+% 1. Read vectors from .txt files
+% -------------------------------------------------------------------------
+A = readVector('A.txt');
+B = readVector('B.txt');
+C = readVector('C.txt');
+D = readVector('D.txt');
+
+E = readVector('E.txt');
+F = readVector('F.txt');
+G = readVector('G.txt');
+H = readVector('H.txt');
+
+fprintf('Loaded vectors: A(%d), B(%d), C(%d), D(%d)\n', ...
+    length(A), length(B), length(C), length(D));
+fprintf('Loaded vectors: E(%d), F(%d), G(%d), H(%d)\n', ...
+    length(E), length(F), length(G), length(H));
+
+% -------------------------------------------------------------------------
+% 2. Plot comparisons: A/E, B/F, C/G, D/H
+% -------------------------------------------------------------------------
+pairs    = { A, E;  B, F;  C, G;  D, H };
+labels1  = {'A', 'B', 'C', 'D'};
+labels2  = {'E', 'F', 'G', 'H'};
+
+figure('Name', 'Vector Comparisons', 'NumberTitle', 'off', ...
+       'Position', [100 100 1200 800]);
+
+for k = 1:4
+    vec1 = pairs{k,1};
+    vec2 = pairs{k,2};
+    n1   = length(vec1);
+    n2   = length(vec2);
+
+    subplot(2, 2, k);
+    hold on;
+
+    plot(1:n1, vec1, '-o', 'LineWidth', 1.5, 'MarkerSize', 3, ...
+         'DisplayName', labels1{k});
+    plot(1:n2, vec2, '-s', 'LineWidth', 1.5, 'MarkerSize', 3, ...
+         'DisplayName', labels2{k});
+
+    hold off;
+    grid on;
+    xlabel('Sample index');
+    ylabel('Value');
+    title(sprintf('%s  vs  %s', labels1{k}, labels2{k}));
+    legend('Location', 'best');
+end
+
+sgtitle('Vector Comparisons (A–D  vs  E–H)');
+
+% =========================================================================
+% Helper function — parses the format:  NAME = [v1, v2, v3, ...]
+% =========================================================================
+function vec = readVector(filename)
+    fid = fopen(filename, 'r', 'n', 'UTF-8');
+    if fid == -1
+        error('Cannot open file: %s', filename);
+    end
+    raw = fgetl(fid);   % single line expected
+    fclose(fid);
+
+    % Strip everything up to and including '['
+    bracket = strfind(raw, '[');
+    if isempty(bracket)
+        error('No "[" found in file: %s', filename);
+    end
+    raw = raw(bracket(1)+1 : end);
+
+    % Strip trailing ']'
+    raw = strrep(raw, ']', '');
+
+    % Replace commas with spaces and parse
+    raw = strrep(raw, ',', ' ');
+    vec = str2double(strsplit(strtrim(raw)));
+    vec = vec(~isnan(vec));   % drop any empty tokens
+end
