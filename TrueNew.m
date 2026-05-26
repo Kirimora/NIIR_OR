@@ -77,20 +77,89 @@ plotTitles = {'Прямой спектр (ускорение)', 'Спектр в
 yLabels   = {'Амплитуда, м/с^2', 'Амплитуда, мм/с', 'Амплитуда, у.е.'};
 xLimits   = {[0 500], [0 1200], [0 1500]};
 
-figure('Name', 'Сравнение 4500 vs 3000 (каналы 1 и 2)', 'Color', 'w', 'Position', [100, 50, 1300, 900]);
-tlayout = tiledlayout(3, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
-title(tlayout, 'Сравнение спектров: 4500 об/мин (красный)  —  3000 об/мин (синий)', 'Color', 'k', 'FontWeight', 'bold');
+% figure('Name', 'Сравнение 4500 vs 3000 (каналы 1 и 2)', 'Color', 'w', 'Position', [100, 50, 1300, 900]);
+% tlayout = tiledlayout(3, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+% title(tlayout, 'Сравнение спектров: 4500 об/мин (красный)  —  3000 об/мин (синий)', 'Color', 'k', 'FontWeight', 'bold');
 
 
 for iType = 1:3
     for iChan = 1:2
-        ax = nexttile;
-        set(ax, 'Color', 'w');                 % белый фон
-        set(ax, 'XColor', 'k', 'YColor', 'k'); % чёрные оси и деления
-        set(ax, 'FontWeight', 'bold');         % жирные цифры на осях
+        % ax = nexttile;
+        % set(ax, 'Color', 'w');                 % белый фон
+        % set(ax, 'XColor', 'k', 'YColor', 'k'); % чёрные оси и деления
+        % set(ax, 'FontWeight', 'bold');         % жирные цифры на осях
+        % hold on; grid on;
+        % set(gca, 'GridColor', [0.3 0.3 0.3], 'GridAlpha', 0.7, 'GridLineStyle', '-');
+        % % Выбор данных для текущего типа спектра
+        % switch iType
+        %     case 1
+        %         y4500 = spec4500.acc(:, iChan);
+        %         y3000 = spec3000.acc(:, iChan);
+        %     case 2
+        %         y4500 = spec4500.vel(:, iChan);
+        %         y3000 = spec3000.vel(:, iChan);
+        %     case 3
+        %         y4500 = spec4500.env(:, iChan);
+        %         y3000 = spec3000.env(:, iChan);
+        % end
+        % 
+        % % Спектры
+        % plot(f_hz, y4500, 'r-', 'LineWidth', 1.2, 'DisplayName', '4500 об/мин');
+        % plot(f_hz, y3000, 'b-', 'LineWidth', 1.2, 'DisplayName', '3000 об/мин');
+        % 
+        % % Находим максимальную амплитуду для текущего графика (для подписи частот)
+        % maxAmp = max([y4500; y3000]);
+        % 
+        % % Для каждой расчётной частоты: линии, маркеры, сбор амплитуд
+        % amp4500_vals = zeros(length(freqs4500),1);
+        % amp3000_vals = zeros(length(freqs3000),1);
+        % 
+        % for k = 1:length(freqs4500)
+        %     [~, idx4500] = min(abs(f_hz - freqs4500(k)));
+        %     [~, idx3000] = min(abs(f_hz - freqs3000(k)));
+        %     amp4500_vals(k) = y4500(idx4500);
+        %     amp3000_vals(k) = y3000(idx3000);
+        % 
+        %     % Вертикальные линии
+        %     xline(freqs4500(k), '--r', 'LineWidth', 0.8, 'HandleVisibility', 'off');
+        %     xline(freqs3000(k), '--b', 'LineWidth', 0.8, 'HandleVisibility', 'off');
+        %     % Маркеры на кривых
+        %     plot(freqs4500(k), amp4500_vals(k), 'ro', 'MarkerSize', 6, 'LineWidth', 1.5, 'HandleVisibility', 'off');
+        %     plot(freqs3000(k), amp3000_vals(k), 'bo', 'MarkerSize', 6, 'LineWidth', 1.5, 'HandleVisibility', 'off');
+        %     % Подпись частоты (цифра) для 4500
+        %     text(freqs4500(k), maxAmp*0.9, sprintf('%.0f', freqs4500(k)), ...
+        %         'Color', 'r', 'FontSize', 7, 'HorizontalAlignment', 'center');
+        % end
+        % 
+        % % Текстовый блок с амплитудами
+        % txt = {};
+        % for k = 1:length(freqNames)
+        %     txt{end+1} = sprintf('%s: 4500=%.2e, 3000=%.2e', ...
+        %         freqNames{k}, amp4500_vals(k), amp3000_vals(k));
+        % end
+        % annotation('textbox', [ax.Position(1)+ax.Position(3)*0.55, ax.Position(2)+ax.Position(4)*0.75, 0.4, 0.2], ...
+        %     'String', txt, 'FontSize', 8, 'BackgroundColor', [0.95 0.95 0.95], ...
+        %     'EdgeColor', 'none', 'FitBoxToText', 'on', 'Color', 'k');
+        % 
+        % xlim(xLimits{iType});
+        % xlabel('Частота, Гц');
+        % ylabel(yLabels{iType});
+        % title(sprintf('%s — Канал %d', plotTitles{iType}, iChan), 'Color', 'k', 'FontWeight', 'bold');
+        % legend('Location', 'northeast');
+        % set(legend, 'Color', 'w', 'TextColor', 'k');
+        % hold off;
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        % Создаём отдельную фигуру
+        figure('Name', sprintf('%s — Канал %d', plotTitles{iType}, iChan), ...
+               'Color', 'w', 'Position', [100 + (iChan-1)*400, 100 + (iType-1)*300, 900, 600]);
+        ax = gca;
+        set(ax, 'Color', 'w');
+        set(ax, 'XColor', 'k', 'YColor', 'k');
+        set(ax, 'FontWeight', 'bold');
         hold on; grid on;
-        set(gca, 'GridColor', [0.3 0.3 0.3], 'GridAlpha', 0.7, 'GridLineStyle', '-');
-        % Выбор данных для текущего типа спектра
+        set(gca, 'GridColor', [0.3 0.3 0.3], 'GridAlpha', 0.7);
+        
+        % Выбираем данные
         switch iType
             case 1
                 y4500 = spec4500.acc(:, iChan);
@@ -103,14 +172,11 @@ for iType = 1:3
                 y3000 = spec3000.env(:, iChan);
         end
         
-        % Спектры
+        % Рисуем спектры
         plot(f_hz, y4500, 'r-', 'LineWidth', 1.2, 'DisplayName', '4500 об/мин');
         plot(f_hz, y3000, 'b-', 'LineWidth', 1.2, 'DisplayName', '3000 об/мин');
         
-        % Находим максимальную амплитуду для текущего графика (для подписи частот)
         maxAmp = max([y4500; y3000]);
-        
-        % Для каждой расчётной частоты: линии, маркеры, сбор амплитуд
         amp4500_vals = zeros(length(freqs4500),1);
         amp3000_vals = zeros(length(freqs3000),1);
         
@@ -120,27 +186,28 @@ for iType = 1:3
             amp4500_vals(k) = y4500(idx4500);
             amp3000_vals(k) = y3000(idx3000);
             
-            % Вертикальные линии
+            % Линии
             xline(freqs4500(k), '--r', 'LineWidth', 0.8, 'HandleVisibility', 'off');
             xline(freqs3000(k), '--b', 'LineWidth', 0.8, 'HandleVisibility', 'off');
-            % Маркеры на кривых
+            % Маркеры
             plot(freqs4500(k), amp4500_vals(k), 'ro', 'MarkerSize', 6, 'LineWidth', 1.5, 'HandleVisibility', 'off');
             plot(freqs3000(k), amp3000_vals(k), 'bo', 'MarkerSize', 6, 'LineWidth', 1.5, 'HandleVisibility', 'off');
-            % Подпись частоты (цифра) для 4500
-            text(freqs4500(k), maxAmp*0.9, sprintf('%.0f', freqs4500(k)), ...
-                'Color', 'r', 'FontSize', 7, 'HorizontalAlignment', 'center');
+            % Подписи цифр – красным для 4500, синим для 3000
+            text(freqs4500(k), maxAmp*0.92, sprintf('%.0f', freqs4500(k)), ...
+                'Color', 'r', 'FontSize', 8, 'HorizontalAlignment', 'center', 'FontWeight', 'bold');
+            text(freqs3000(k), maxAmp*0.88, sprintf('%.0f', freqs3000(k)), ...
+                'Color', 'b', 'FontSize', 8, 'HorizontalAlignment', 'center', 'FontWeight', 'bold');
         end
         
-        % Текстовый блок с амплитудами
+        % Текстовая табличка (позиционируем относительно текущих осей)
         txt = {};
         for k = 1:length(freqNames)
             txt{end+1} = sprintf('%s: 4500=%.2e, 3000=%.2e', ...
                 freqNames{k}, amp4500_vals(k), amp3000_vals(k));
         end
-        annotation('textbox', [ax.Position(1)+ax.Position(3)*0.55, ax.Position(2)+ax.Position(4)*0.75, 0.4, 0.2], ...
-            'String', txt, 'FontSize', 8, 'BackgroundColor', [0.95 0.95 0.95], ...
+        annotation('textbox', [0.65, 0.75, 0.3, 0.2], ...
+            'String', txt, 'FontSize', 8, 'BackgroundColor', 'w', ...
             'EdgeColor', 'none', 'FitBoxToText', 'on', 'Color', 'k');
-        
         xlim(xLimits{iType});
         xlabel('Частота, Гц');
         ylabel(yLabels{iType});
