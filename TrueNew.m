@@ -79,13 +79,17 @@ xLimits   = {[0 500], [0 1200], [0 1500]};
 
 figure('Name', 'Сравнение 4500 vs 3000 (каналы 1 и 2)', 'Color', 'w', 'Position', [100, 50, 1300, 900]);
 tlayout = tiledlayout(3, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
-title(tlayout, 'Сравнение спектров: 4500 об/мин (красный)  —  3000 об/мин (синий)');
+title(tlayout, 'Сравнение спектров: 4500 об/мин (красный)  —  3000 об/мин (синий)', 'Color', 'k', 'FontWeight', 'bold');
+
 
 for iType = 1:3
     for iChan = 1:2
         ax = nexttile;
+        set(ax, 'Color', 'w');                 % белый фон
+        set(ax, 'XColor', 'k', 'YColor', 'k'); % чёрные оси и деления
+        set(ax, 'FontWeight', 'bold');         % жирные цифры на осях
         hold on; grid on;
-        
+        set(gca, 'GridColor', [0.3 0.3 0.3], 'GridAlpha', 0.7, 'GridLineStyle', '-');
         % Выбор данных для текущего типа спектра
         switch iType
             case 1
@@ -135,13 +139,14 @@ for iType = 1:3
         end
         annotation('textbox', [ax.Position(1)+ax.Position(3)*0.55, ax.Position(2)+ax.Position(4)*0.75, 0.4, 0.2], ...
             'String', txt, 'FontSize', 8, 'BackgroundColor', [0.95 0.95 0.95], ...
-            'EdgeColor', 'none', 'FitBoxToText', 'on');
+            'EdgeColor', 'none', 'FitBoxToText', 'on', 'Color', 'k');
         
         xlim(xLimits{iType});
         xlabel('Частота, Гц');
         ylabel(yLabels{iType});
-        title(sprintf('%s — Канал %d', plotTitles{iType}, iChan));
+        title(sprintf('%s — Канал %d', plotTitles{iType}, iChan), 'Color', 'k', 'FontWeight', 'bold');
         legend('Location', 'northeast');
+        set(legend, 'Color', 'w', 'TextColor', 'k');
         hold off;
     end
 end
@@ -298,3 +303,145 @@ function [k_FTF, k_BPFO, k_BPFI, k_BSF] = bearing_coeffs(n, d, D, phi_deg)
     k_BPFI = 0.5 * n * (1 + ratio);
     k_BSF  = (D / (2*d)) * (1 - ratio^2);
 end
+%% 6. СВОДНЫЕ ТАБЛИЦЫ И АВТОМАТИЧЕСКАЯ ИНТЕРПРЕТАЦИЯ (как в True.m)
+peak_band = 2.0;  % полоса поиска пика ±2 Гц
+get_peak = @(freq, fvec, avec, bw) max([0; avec(abs(fvec - freq) <= bw)]);
+
+% --- для эксперимента 4500 ---
+f_rot = f_rot4500;
+ch1_acc = spec4500.acc(:,1);
+ch2_acc = spec4500.acc(:,2);
+ch1_vel = spec4500.vel(:,1);
+ch2_vel = spec4500.vel(:,2);
+ch1_env = spec4500.env(:,1);
+ch2_env = spec4500.env(:,2);
+
+% Оборотные гармоники (по спектру ускорения)
+ch1_05X = get_peak(0.5*f_rot, f_hz, ch1_acc, peak_band);
+ch2_05X = get_peak(0.5*f_rot, f_hz, ch2_acc, peak_band);
+ch1_1X  = get_peak(1.0*f_rot, f_hz, ch1_acc, peak_band);
+ch2_1X  = get_peak(1.0*f_rot, f_hz, ch2_acc, peak_band);
+ch1_2X  = get_peak(2.0*f_rot, f_hz, ch1_acc, peak_band);
+ch2_2X  = get_peak(2.0*f_rot, f_hz, ch2_acc, peak_band);
+ch1_3X  = get_peak(3.0*f_rot, f_hz, ch1_acc, peak_band);
+ch2_3X  = get_peak(3.0*f_rot, f_hz, ch2_acc, peak_band);
+
+% Подшипниковые частоты (по спектру огибающей)
+ch1_BPFO = get_peak(f_BPFO4500, f_hz, ch1_env, peak_band);
+ch2_BPFO = get_peak(f_BPFO4500, f_hz, ch2_env, peak_band);
+ch1_BPFI = get_peak(f_BPFI4500, f_hz, ch1_env, peak_band);
+ch2_BPFI = get_peak(f_BPFI4500, f_hz, ch2_env, peak_band);
+ch1_BSF  = get_peak(f_BSF4500,  f_hz, ch1_env, peak_band);
+ch2_BSF  = get_peak(f_BSF4500,  f_hz, ch2_env, peak_band);
+ch1_FTF  = get_peak(f_FTF4500,  f_hz, ch1_env, peak_band);
+ch2_FTF  = get_peak(f_FTF4500,  f_hz, ch2_env, peak_band);
+
+Metric = {'0.5X';'1X';'2X';'3X';'BPFO';'BPFI';'BSF';'FTF'};
+Freq_Hz = [0.5*f_rot; f_rot; 2*f_rot; 3*f_rot; f_BPFO4500; f_BPFI4500; f_BSF4500; f_FTF4500];
+Channel_1 = [ch1_05X; ch1_1X; ch1_2X; ch1_3X; ch1_BPFO; ch1_BPFI; ch1_BSF; ch1_FTF];
+Channel_2 = [ch2_05X; ch2_1X; ch2_2X; ch2_3X; ch2_BPFO; ch2_BPFI; ch2_BSF; ch2_FTF];
+
+[MaxAmp, idxMax] = max([Channel_1, Channel_2], [], 2);
+BestChannel = strings(length(idxMax),1);
+for i = 1:length(idxMax)
+    BestChannel(i) = sprintf('Канал %d', idxMax(i));
+end
+
+summaryTable4500 = table(Metric, Freq_Hz, Channel_1, Channel_2, MaxAmp, BestChannel);
+fprintf('\n=============== СВОДНАЯ ТАБЛИЦА ДЛЯ 4500 об/мин ===============\n');
+disp(summaryTable4500);
+writetable(summaryTable4500, 'summary_4500.csv');
+
+% --- Автоинтерпретация для 4500 ---
+rotorMetrics = ismember(Metric, {'0.5X','1X','2X','3X'});
+bearingMetrics = ismember(Metric, {'BPFO','BPFI','BSF','FTF'});
+rotorEnergy = [sum(Channel_1(rotorMetrics)), sum(Channel_2(rotorMetrics))];
+bearingEnergy = [sum(Channel_1(bearingMetrics)), sum(Channel_2(bearingMetrics))];
+[~, bestRotorIdx] = max(rotorEnergy);
+[~, bestBearingIdx] = max(bearingEnergy);
+
+bearingRows = find(bearingMetrics);
+[~, domIdxLocal] = max(MaxAmp(bearingRows));
+domIdx = bearingRows(domIdxLocal);
+dominantBearingMetric = Metric{domIdx};
+dominantBearingChannel = BestChannel(domIdx);
+dominantBearingAmp = MaxAmp(domIdx);
+
+fprintf('\n=============== АВТОМАТИЧЕСКАЯ ИНТЕРПРЕТАЦИЯ (4500 об/мин) ===============\n');
+fprintf('Лучший канал для контроля оборотных/валовых составляющих: Канал %d\n', bestRotorIdx);
+fprintf('Лучший канал для контроля подшипниковых дефектов: Канал %d\n', bestBearingIdx);
+switch dominantBearingMetric
+    case 'BPFO', bc = 'дефект наружного кольца';
+    case 'BPFI', bc = 'дефект внутреннего кольца';
+    case 'BSF',  bc = 'дефект тел качения';
+    case 'FTF',  bc = 'дефект сепаратора';
+    otherwise,   bc = 'не определён';
+end
+fprintf('Наиболее выражен признак: %s\n', bc);
+fprintf('Доминирующая подшипниковая частота: %s, канал %s, амплитуда = %.4f\n', ...
+    dominantBearingMetric, dominantBearingChannel, dominantBearingAmp);
+
+% --- для эксперимента 3000 (аналогично) ---
+f_rot = f_rot3000;
+ch1_acc = spec3000.acc(:,1);
+ch2_acc = spec3000.acc(:,2);
+ch1_vel = spec3000.vel(:,1);
+ch2_vel = spec3000.vel(:,2);
+ch1_env = spec3000.env(:,1);
+ch2_env = spec3000.env(:,2);
+
+ch1_05X = get_peak(0.5*f_rot, f_hz, ch1_acc, peak_band);
+ch2_05X = get_peak(0.5*f_rot, f_hz, ch2_acc, peak_band);
+ch1_1X  = get_peak(1.0*f_rot, f_hz, ch1_acc, peak_band);
+ch2_1X  = get_peak(1.0*f_rot, f_hz, ch2_acc, peak_band);
+ch1_2X  = get_peak(2.0*f_rot, f_hz, ch1_acc, peak_band);
+ch2_2X  = get_peak(2.0*f_rot, f_hz, ch2_acc, peak_band);
+ch1_3X  = get_peak(3.0*f_rot, f_hz, ch1_acc, peak_band);
+ch2_3X  = get_peak(3.0*f_rot, f_hz, ch2_acc, peak_band);
+
+ch1_BPFO = get_peak(f_BPFO3000, f_hz, ch1_env, peak_band);
+ch2_BPFO = get_peak(f_BPFO3000, f_hz, ch2_env, peak_band);
+ch1_BPFI = get_peak(f_BPFI3000, f_hz, ch1_env, peak_band);
+ch2_BPFI = get_peak(f_BPFI3000, f_hz, ch2_env, peak_band);
+ch1_BSF  = get_peak(f_BSF3000,  f_hz, ch1_env, peak_band);
+ch2_BSF  = get_peak(f_BSF3000,  f_hz, ch2_env, peak_band);
+ch1_FTF  = get_peak(f_FTF3000,  f_hz, ch1_env, peak_band);
+ch2_FTF  = get_peak(f_FTF3000,  f_hz, ch2_env, peak_band);
+
+Freq_Hz = [0.5*f_rot; f_rot; 2*f_rot; 3*f_rot; f_BPFO3000; f_BPFI3000; f_BSF3000; f_FTF3000];
+Channel_1 = [ch1_05X; ch1_1X; ch1_2X; ch1_3X; ch1_BPFO; ch1_BPFI; ch1_BSF; ch1_FTF];
+Channel_2 = [ch2_05X; ch2_1X; ch2_2X; ch2_3X; ch2_BPFO; ch2_BPFI; ch2_BSF; ch2_FTF];
+[MaxAmp, idxMax] = max([Channel_1, Channel_2], [], 2);
+BestChannel = strings(length(idxMax),1);
+for i = 1:length(idxMax), BestChannel(i) = sprintf('Канал %d', idxMax(i)); end
+summaryTable3000 = table(Metric, Freq_Hz, Channel_1, Channel_2, MaxAmp, BestChannel);
+fprintf('\n=============== СВОДНАЯ ТАБЛИЦА ДЛЯ 3000 об/мин ===============\n');
+disp(summaryTable3000);
+writetable(summaryTable3000, 'summary_3000.csv');
+
+rotorEnergy = [sum(Channel_1(rotorMetrics)), sum(Channel_2(rotorMetrics))];
+bearingEnergy = [sum(Channel_1(bearingMetrics)), sum(Channel_2(bearingMetrics))];
+[~, bestRotorIdx] = max(rotorEnergy);
+[~, bestBearingIdx] = max(bearingEnergy);
+bearingRows = find(bearingMetrics);
+[~, domIdxLocal] = max(MaxAmp(bearingRows));
+domIdx = bearingRows(domIdxLocal);
+dominantBearingMetric = Metric{domIdx};
+dominantBearingChannel = BestChannel(domIdx);
+dominantBearingAmp = MaxAmp(domIdx);
+
+fprintf('\n=============== АВТОМАТИЧЕСКАЯ ИНТЕРПРЕТАЦИЯ (3000 об/мин) ===============\n');
+fprintf('Лучший канал для контроля оборотных/валовых составляющих: Канал %d\n', bestRotorIdx);
+fprintf('Лучший канал для контроля подшипниковых дефектов: Канал %d\n', bestBearingIdx);
+switch dominantBearingMetric
+    case 'BPFO', bc = 'дефект наружного кольца';
+    case 'BPFI', bc = 'дефект внутреннего кольца';
+    case 'BSF',  bc = 'дефект тел качения';
+    case 'FTF',  bc = 'дефект сепаратора';
+    otherwise,   bc = 'не определён';
+end
+fprintf('Наиболее выражен признак: %s\n', bc);
+fprintf('Доминирующая подшипниковая частота: %s, канал %s, амплитуда = %.4f\n', ...
+    dominantBearingMetric, dominantBearingChannel, dominantBearingAmp);
+
+fprintf('\nТаблицы сохранены в summary_4500.csv и summary_3000.csv\n');
